@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d63f2a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ponude">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Barać ponude</title>
+<style>
+  :root {
+    --red: #d63f2a;
+    --red-dark: #b8321f;
+    --bg: #f3f1ee;
+    --card: #ffffff;
+    --text: #1f1f1f;
+    --muted: #6b6b6b;
+    --line: #dddad5;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body { font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding-bottom: 110px; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+
+  .top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top)); background: var(--red); color: #fff; }
+  .top .title { font-weight: 700; font-size: 19px; }
+  .top .sub { font-size: 13px; opacity: .9; }
+  .top-actions { display: flex; gap: 8px; }
+  .icon { background: rgba(255,255,255,.18); border: 0; border-radius: 10px; color: #fff; width: 44px; height: 44px; font-size: 20px; }
+
+  main { max-width: 640px; margin: 0 auto; padding: 12px 12px 0; }
+  .card { background: var(--card); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--red-dark); margin: 0 0 10px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  input, select, textarea { display: block; width: 100%; margin-top: 4px; padding: 11px 12px; border: 1px solid var(--line);
+    border-radius: 10px; background: #fff; font-size: 16px; min-width: 0; }
+  input[type=date] { -webkit-appearance: none; appearance: none; min-height: 46px; }
+  textarea { resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--red); border-color: transparent; }
+  .row { display: flex; gap: 10px; }
+  .row > label { flex: 1; min-width: 0; }
+  .row > .w35 { flex: 0 0 35%; }
+
+  .item { border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 10px; background: #fcfbfa; }
+  .item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .item-head .num { font-weight: 700; color: var(--red-dark); }
+  .del { border: 0; background: #eee; border-radius: 8px; width: 36px; height: 32px; }
+  .item .i-naziv { margin-top: 0; font-weight: 600; }
+  .item .i-opis { margin: 8px 0; font-size: 14px; }
+  .row3 { display: grid; grid-template-columns: 1fr 0.9fr 1.1fr; gap: 8px; }
+  .row3 label { margin-bottom: 0; }
+  .item-val { text-align: right; font-weight: 600; margin-top: 8px; }
+
+  .btn { display: block; width: 100%; border: 0; border-radius: 12px; padding: 14px; font-weight: 600; font-size: 16px; }
+  .btn.add { background: #fbe9e6; color: var(--red-dark); }
+  .btn.primary { background: var(--red); color: #fff; }
+  .btn.primary:active { background: var(--red-dark); }
+  .btn.ghost { background: transparent; color: var(--muted); text-decoration: underline; margin-bottom: 20px; }
+  .btn.secondary { background: #eee; }
+  .btn + .btn { margin-top: 10px; }
+
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; gap: 12px; align-items: center;
+    padding: 12px 16px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -2px 10px rgba(0,0,0,.08); }
+  .bar .total { flex: 0 0 auto; }
+  .bar .total span { display: block; font-size: 12px; color: var(--muted); }
+  .bar .total strong { font-size: 19px; }
+  .bar .btn { flex: 1; }
+
+  dialog { width: min(600px, calc(100% - 24px)); max-height: calc(100% - 40px); border: 0; border-radius: 16px; padding: 18px; }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  dialog h3 { margin: 0 0 14px; }
+  .hist-row { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  .hist-row .meta { font-size: 13px; color: var(--muted); }
+  .hist-row .acts { display: flex; gap: 8px; margin-top: 8px; }
+  .hist-row .acts button { flex: 1; padding: 9px; border-radius: 9px; border: 0; background: #eee; font-weight: 600; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .logo-prev { max-width: 180px; max-height: 80px; display: block; margin: 6px 0; }
+  .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: #222; color: #fff; padding: 10px 16px;
+    border-radius: 10px; z-index: 20; font-size: 15px; display: none; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <div class="title" id="formTitle">Nova ponuda</div>
+    <div class="sub" id="brojLabel"></div>
+  </div>
+  <div class="top-actions">
+    <button class="icon" id="btnHistory" aria-label="Spremljene ponude">🗂️</button>
+    <button class="icon" id="btnSettings" aria-label="Postavke">⚙️</button>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Kupac</h2>
+    <select id="savedCustomers" hidden></select>
+    <label>Naziv kupca
+      <textarea id="k_naziv" rows="2" placeholder="npr. SZP zgrade Saše Šantela 11"></textarea></label>
+    <label>Adresa<input id="k_adresa" placeholder="Ulica i kućni broj"></label>
+    <div class="row">
+      <label class="w35">Pošt. broj<input id="k_posta" inputmode="numeric" placeholder="52000"></label>
+      <label>Mjesto<input id="k_mjesto" placeholder="Pazin"></label>
+    </div>
+    <label>OIB<input id="k_oib" inputmode="numeric" maxlength="11"></label>
+  </section>
+
+  <section class="card">
+    <h2>Podaci ponude</h2>
+    <div class="row">
+      <label>Datum<input type="date" id="datum"></label>
+      <label>Vrijedi do<input type="date" id="valjanost"></label>
+    </div>
+    <label>Rok isporuke (neobavezno)<input id="rokIsporuke"></label>
+    <label>Odgovorna osoba<input id="odgovornaOsoba"></label>
+  </section>
+
+  <section class="card">
+    <h2>Stavke</h2>
+    <div id="items"></div>
+    <button class="btn add" id="btnAdd">+ Dodaj stavku</button>
+  </section>
+
+  <section class="card">
+    <h2>Napomena</h2>
+    <textarea id="napomena" rows="3" placeholder="npr. PONUDA ZA BOJANJE ZAJEDNIČKOG STUBIŠTA"></textarea>
+  </section>
+
+  <button class="btn ghost" id="btnNew">Započni novu, praznu ponudu</button>
+</main>
+
+<footer class="bar">
+  <div class="total"><span>Ukupno</span><strong id="total">0,00 €</strong></div>
+  <button class="btn primary" id="btnGenerate">Generiraj ponudu</button>
+</footer>
+
+<!-- Gotova ponuda -->
+<dialog id="dlgDone">
+  <h3 id="doneTitle">Ponuda je spremna</h3>
+  <p class="muted">PDF je spremljen u preuzimanja (Downloads). Možeš ga odmah i poslati kupcu.</p>
+  <button class="btn primary" id="btnShare">Pošalji (WhatsApp, e-mail…)</button>
+  <button class="btn secondary" id="btnDownload">Spremi ponovno na mobitel</button>
+  <button class="btn secondary" id="btnOpen">Otvori PDF</button>
+  <button class="btn ghost" id="btnDoneClose">Zatvori</button>
+</dialog>
+
+<!-- Spremljene ponude -->
+<dialog id="dlgHistory">
+  <h3>Spremljene ponude</h3>
+  <div id="historyList"></div>
+  <button class="btn secondary" id="btnHistoryClose" style="margin-top:14px">Zatvori</button>
+</dialog>
+
+<!-- Postavke -->
+<dialog id="dlgSettings">
+  <h3>Postavke</h3>
+  <label>Naziv firme<input id="s_firma"></label>
+  <label>Adresa firme<input id="s_adresa"></label>
+  <label>OIB firme<input id="s_oib" inputmode="numeric"></label>
+  <label>Ostali podaci u zaglavlju (IBAN, banka…)<textarea id="s_dodatno" rows="4"></textarea></label>
+  <label>Logo
+    <img id="s_logoPrev" class="logo-prev" alt="">
+    <input type="file" id="s_logo" accept="image/png,image/jpeg">
+  </label>
+  <button class="btn secondary" id="btnLogoReset" style="margin-bottom:14px">Vrati zadani logo</button>
+  <label>Zadana odgovorna osoba<input id="s_odgovorna"></label>
+  <div class="row">
+    <label>Oznaka u broju<input id="s_srednji" inputmode="numeric"></label>
+    <label>Sljedeći broj ponude<input id="s_next" inputmode="numeric"></label>
+  </div>
+  <label>Ponuda vrijedi (dana)<input id="s_valjanost" inputmode="numeric"></label>
+  <label>Porezna stopa (tekst)<input id="s_porez"></label>
+  <label>Napomena na dnu (podebljano)<input id="s_napDno"></label>
+  <label>PDV napomena<textarea id="s_pdv" rows="3"></textarea></label>
+  <button class="btn primary" id="btnSettingsSave">Spremi postavke</button>
+  <button class="btn ghost" id="btnSettingsClose">Odustani</button>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script src="logo.js?v=2"></script>
+<script src="vendor/pdfmake.min.js"></script>
+<script src="vendor/vfs_fonts.js"></script>
+<script src="ponuda-pdf.js?v=2"></script>
+<script src="app.js?v=2"></script>
+</body>
+</html>
