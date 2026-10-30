@@ -1,0 +1,21 @@
+# Besplatni Supabase projekt se pauzira nakon 7 dana bez aktivnosti.
+# Ovaj posao svaka 3 dana pošalje mali upit bazi da ostane budna.
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "17 6 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping baze
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://zqviotbvmeylwfyyotdf.supabase.co/rest/v1/quotes?select=broj&limit=1" \
+            -H "apikey: sb_publishable_FpS6rTxLDWuDlVslIzQPlA_PHwABGoE")
+          echo "HTTP $code"
+          # 401/403 = baza je odgovorila (anonimni pristup je namjerno odbijen)
+          case "$code" in 200|401|403) exit 0 ;; *) exit 1 ;; esac

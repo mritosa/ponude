@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Ponude">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Barać ponude</title>
+<title>Ponude</title>
 <style>
   :root {
     --red: #d63f2a;
@@ -53,7 +53,12 @@
   .item .i-opis { margin: 8px 0; font-size: 14px; }
   .row3 { display: grid; grid-template-columns: 1fr 0.9fr 1.1fr; gap: 8px; }
   .row3 label { margin-bottom: 0; }
-  .item-val { text-align: right; font-weight: 600; margin-top: 8px; }
+  .item-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 8px; }
+  .item-foot .pdv { display: flex; align-items: center; gap: 8px; margin: 0; }
+  .item-foot .pdv select { width: auto; margin: 0; padding: 7px 10px; }
+  .item-val { text-align: right; font-weight: 600; }
+  label.check { display: flex; align-items: center; gap: 10px; font-size: 16px; color: var(--text); margin: 6px 0 14px; }
+  label.check input { width: 22px; height: 22px; margin: 0; flex: 0 0 auto; accent-color: var(--red); }
 
   .btn { display: block; width: 100%; border: 0; border-radius: 12px; padding: 14px; font-weight: 600; font-size: 16px; }
   .btn.add { background: #fbe9e6; color: var(--red-dark); }
@@ -79,12 +84,34 @@
   .hist-row .acts button { flex: 1; padding: 9px; border-radius: 9px; border: 0; background: #eee; font-weight: 600; }
   .muted { color: var(--muted); font-size: 14px; }
   .logo-prev { max-width: 180px; max-height: 80px; display: block; margin: 6px 0; }
+  .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+  .login form { width: 100%; max-width: 380px; background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+  .login img { display: block; width: 72px; height: 72px; border-radius: 18px; margin: 0 auto 14px; }
+  .login h1 { font-size: 19px; text-align: center; margin: 0 0 18px; }
+  .login .err { color: var(--red-dark); font-size: 14px; min-height: 20px; margin: 4px 0 8px; }
+  .loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .intro { background: #fbe9e6; border-radius: 10px; padding: 12px; font-size: 14px; margin: 0 0 14px; }
+  .user-box { background: var(--bg); border-radius: 10px; padding: 12px; margin: 18px 0 6px; font-size: 14px; }
   .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: #222; color: #fff; padding: 10px 16px;
     border-radius: 10px; z-index: 20; font-size: 15px; display: none; }
 </style>
 </head>
 <body>
 
+<div id="loadingScreen" class="loading">Učitavam…</div>
+
+<div id="loginScreen" class="login" hidden>
+  <form id="loginForm">
+    <img src="icon-192.png" alt="">
+    <h1>Ponude – prijava</h1>
+    <label>E-mail<input type="email" id="l_email" autocomplete="username" required></label>
+    <label>Lozinka<input type="password" id="l_pass" autocomplete="current-password" required></label>
+    <div class="err" id="loginError"></div>
+    <button class="btn primary" id="btnLogin" type="submit">Prijava</button>
+  </form>
+</div>
+
+<div id="appScreen" hidden>
 <header class="top">
   <div>
     <div class="title" id="formTitle">Nova ponuda</div>
@@ -135,9 +162,10 @@
 </main>
 
 <footer class="bar">
-  <div class="total"><span>Ukupno</span><strong id="total">0,00 €</strong></div>
+  <div class="total"><span id="totalLabel">Ukupno</span><strong id="total">0,00 €</strong></div>
   <button class="btn primary" id="btnGenerate">Generiraj ponudu</button>
 </footer>
+</div>
 
 <!-- Gotova ponuda -->
 <dialog id="dlgDone">
@@ -159,34 +187,41 @@
 <!-- Postavke -->
 <dialog id="dlgSettings">
   <h3>Postavke</h3>
-  <label>Naziv firme<input id="s_firma"></label>
-  <label>Adresa firme<input id="s_adresa"></label>
-  <label>OIB firme<input id="s_oib" inputmode="numeric"></label>
-  <label>Ostali podaci u zaglavlju (IBAN, banka…)<textarea id="s_dodatno" rows="4"></textarea></label>
+  <p class="intro" id="s_intro" hidden>👋 Dobrodošli! Prije prve ponude upiši podatke svoje firme. Oni se ispisuju u zaglavlju svake ponude, a možeš ih kasnije promijeniti ovdje (⚙️).</p>
+  <label>Naziv firme *<input id="s_firma" placeholder="npr. Obrt Horvat, vl. Ivan Horvat"></label>
+  <label>Adresa firme<input id="s_adresa" placeholder="npr. Ulica 1, HR-52000 Pazin"></label>
+  <label>OIB firme<input id="s_oib" inputmode="numeric" maxlength="11"></label>
+  <label>Ostali podaci u zaglavlju (IBAN, banka…)<textarea id="s_dodatno" rows="4" placeholder="IBAN: HR...&#10;Naziv banke    SWIFT: ..."></textarea></label>
   <label>Logo
     <img id="s_logoPrev" class="logo-prev" alt="">
     <input type="file" id="s_logo" accept="image/png,image/jpeg">
   </label>
-  <button class="btn secondary" id="btnLogoReset" style="margin-bottom:14px">Vrati zadani logo</button>
+  <button class="btn secondary" id="btnLogoReset" style="margin-bottom:14px">Ukloni logo</button>
   <label>Zadana odgovorna osoba<input id="s_odgovorna"></label>
   <div class="row">
     <label>Oznaka u broju<input id="s_srednji" inputmode="numeric"></label>
     <label>Sljedeći broj ponude<input id="s_next" inputmode="numeric"></label>
   </div>
   <label>Ponuda vrijedi (dana)<input id="s_valjanost" inputmode="numeric"></label>
-  <label>Porezna stopa (tekst)<input id="s_porez"></label>
+  <label class="check"><input type="checkbox" id="s_uPdv"> Firma je u sustavu PDV-a</label>
+  <label id="s_stopaWrap">Zadana stopa PDV-a (%)
+    <select id="s_stopaPdv"><option value="25">25 %</option><option value="13">13 %</option><option value="5">5 %</option><option value="0">0 %</option></select></label>
+  <label id="s_porezWrap">Porezna stopa (tekst)<input id="s_porez"></label>
   <label>Napomena na dnu (podebljano)<input id="s_napDno"></label>
-  <label>PDV napomena<textarea id="s_pdv" rows="3"></textarea></label>
+  <label id="s_pdvWrap">Napomena o PDV-u<textarea id="s_pdv" rows="3"></textarea></label>
   <button class="btn primary" id="btnSettingsSave">Spremi postavke</button>
   <button class="btn ghost" id="btnSettingsClose">Odustani</button>
+  <div class="user-box">Prijavljen kao <strong id="s_user"></strong></div>
+  <button class="btn secondary" id="btnLogout">Odjava</button>
 </dialog>
 
 <div class="toast" id="toast"></div>
 
-<script src="logo.js?v=2"></script>
+<script src="config.js?v=4"></script>
+<script src="vendor/supabase.js"></script>
 <script src="vendor/pdfmake.min.js"></script>
 <script src="vendor/vfs_fonts.js"></script>
-<script src="ponuda-pdf.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="ponuda-pdf.js?v=6"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

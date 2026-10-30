@@ -1,6 +1,6 @@
 // Offline rad: sve datoteke se spremaju pri prvom otvaranju.
-const CACHE = 'barac-ponude-v1';
-const FILES = ['./', 'index.html', 'app.js', 'ponuda-pdf.js', 'logo.js', 'vendor/pdfmake.min.js', 'vendor/vfs_fonts.js',
+const CACHE = 'ponude-v3';
+const FILES = ['./', 'index.html', 'app.js', 'ponuda-pdf.js', 'config.js', 'vendor/supabase.js', 'vendor/pdfmake.min.js', 'vendor/vfs_fonts.js',
   'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -12,7 +12,8 @@ self.addEventListener('activate', (e) => {
 });
 // Mreža prvo (da nove verzije stignu odmah), cache kad nema interneta.
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
+  // Samo vlastite datoteke; pozivi prema bazi idu mimo predmemorije.
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
     fetch(e.request).then((res) => {
       const copy = res.clone();

@@ -34,6 +34,28 @@
     return round2(activeItems(stavke).reduce((sum, it) => sum + lineValue(it), 0));
   }
 
+  function stopaText(n) { return String(n).replace('.', ','); }
+
+  // PDV stopa stavke; korisnik izvan sustava PDV-a uvijek ima 0.
+  function itemPdv(it, s) {
+    if (!s || !s.uPdv) return 0;
+    return it.pdv === undefined || it.pdv === '' ? num(s.stopaPdv) : num(it.pdv);
+  }
+
+  // Osnovica, PDV po stopama i iznos za platiti.
+  function calc(stavke, s) {
+    const byRate = new Map();
+    for (const it of activeItems(stavke)) {
+      const rate = itemPdv(it, s);
+      byRate.set(rate, round2((byRate.get(rate) || 0) + lineValue(it)));
+    }
+    const stope = [...byRate.entries()].sort((a, b) => b[0] - a[0])
+      .map(([stopa, osnova]) => ({ stopa, osnova, pdv: round2((osnova * stopa) / 100) }));
+    const osnovica = round2(stope.reduce((sum, r) => sum + r.osnova, 0));
+    const pdv = round2(stope.reduce((sum, r) => sum + r.pdv, 0));
+    return { osnovica, pdv, zaPlatiti: round2(osnovica + pdv), stope };
+  }
+
   // --- Iznos slovima (hrvatski) ---
   const JED_M = ['', 'jedan', 'dva', 'tri', 'četiri', 'pet', 'šest', 'sedam', 'osam', 'devet'];
   const JED_Z = ['', 'jedna', 'dvije', 'tri', 'četiri', 'pet', 'šest', 'sedam', 'osam', 'devet'];
@@ -112,7 +134,7 @@
 
   function buildDoc(d, s, logo) {
     const items = activeItems(d.stavke);
-    const ukupno = total(d.stavke);
+    const c = calc(d.stavke, s);
     const k = d.kupac || {};
 
     const itemRows = items.map((it, i) => {
@@ -125,7 +147,7 @@
         { text: it.jedinica || '' },
         right(fmt(num(it.cijena))),
         right('0,00'),
-        right('0,00'),
+        right(fmt(itemPdv(it, s))),
         right(fmt(lineValue(it))),
       ];
     });
@@ -139,7 +161,7 @@
     const content = [
       {
         columns: [
-          logo ? { image: logo, width: 150 } : { text: s.firma, bold: true, fontSize: 16, width: 150 },
+          logo ? { image: logo, width: 150 } : { text: s.firma, bold: true, fontSize: 16, width: 260 },
           { text: '', width: '*' },
           {
             width: 'auto',
@@ -201,7 +223,7 @@
               body: [
                 [lbl('Por.br.'), ''],
                 [lbl('OIB'), k.oib || ''],
-                [lbl('Slovima'), slovima(ukupno)],
+                [lbl('Slovima'), slovima(c.zaPlatiti)],
               ],
             },
           },
@@ -211,9 +233,9 @@
             table: {
               widths: [65, '*', 75],
               body: [
-                [lbl('Ukupno'), '', right(fmt(ukupno))],
-                [lbl('PDV'), '', right('0,00')],
-                [lbl('Za platiti'), lbl('EUR'), right(fmt(ukupno), { bold: true, fontSize: 8.5 })],
+                [lbl('Ukupno'), '', right(fmt(c.osnovica))],
+                [lbl('PDV'), '', right(fmt(c.pdv))],
+                [lbl('Za platiti'), lbl('EUR'), right(fmt(c.zaPlatiti), { bold: true, fontSize: 8.5 })],
               ],
             },
             layout: {
@@ -234,7 +256,11 @@
           widths: ['*', 80, 110, 80],
           body: [
             [lbl('POREZNE STOPE'), lbl('Osnova', { alignment: 'right' }), lbl('PDV', { alignment: 'center' }), lbl('Vrijednost', { alignment: 'right' })],
-            [s.porezNapomena || '', right(fmt(ukupno)), { text: '0,00', alignment: 'center' }, right(fmt(ukupno))],
+            ...(s.uPdv
+              ? (c.stope.length ? c.stope : [{ stopa: num(s.stopaPdv), osnova: 0, pdv: 0 }]).map((r) => [
+                `PDV ${stopaText(r.stopa)}%`, right(fmt(r.osnova)), { text: fmt(r.pdv), alignment: 'center' }, right(fmt(r.osnova + r.pdv)),
+              ])
+              : [[s.porezNapomena || '', right(fmt(c.osnovica)), { text: '0,00', alignment: 'center' }, right(fmt(c.osnovica))]]),
           ],
         },
       },
@@ -245,7 +271,7 @@
     }
     content.push(
       { text: s.napomenaDno || '', bold: true, fontSize: 10, margin: [3, d.napomena ? 18 : 35, 0, 1] },
-      { text: s.pdvNapomena || '', bold: true, fontSize: 7, margin: [3, 0, 0, 0] },
+      { text: s.uPdv ? '' : s.pdvNapomena || '', bold: true, fontSize: 7, margin: [3, 0, 0, 0] },
       { text: `Pri plaćanju platnim nalogom navedite model 00 i poziv ${d.broj}.`, fontSize: 7.5, margin: [0, 40, 0, 0] },
     );
 
@@ -262,7 +288,7 @@
     };
   }
 
-  const api = { num, fmt, fmtDate, lineValue, total, slovima, buildDoc };
+  const api = { num, fmt, fmtDate, lineValue, total, calc, itemPdv, slovima, buildDoc };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PonudaPDF = api;
 })(this);
