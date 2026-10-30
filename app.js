@@ -21,6 +21,8 @@
     valjanostDana: 5,
     uPdv: false,
     stopaPdv: 25,
+    predlozak: 'klasicni',
+    boja: '#f7941d',
     porezNapomena: 'Roba - PDV se ne obračunava i ne plaća',
     napomenaDno: 'Ova ponuda važeća je bez pečata i potpisa.',
     pdvNapomena: 'Obveznik nije u sustavu PDV-a, PDV nije obračunat temeljem čl.90., st.1 i st.2 Zakona o PDV-u (NN 73/13)',
@@ -360,8 +362,10 @@
   const settingFields = {
     s_firma: 'firma', s_adresa: 'adresa', s_oib: 'oib', s_dodatno: 'dodatno', s_odgovorna: 'odgovornaOsoba',
     s_srednji: 'srednjiDio', s_valjanost: 'valjanostDana', s_porez: 'porezNapomena', s_napDno: 'napomenaDno', s_pdv: 'pdvNapomena',
-    s_stopaPdv: 'stopaPdv',
+    s_stopaPdv: 'stopaPdv', s_predlozak: 'predlozak', s_boja: 'boja',
   };
+
+  function showBoja() { $('s_bojaWrap').hidden = $('s_predlozak').value !== 'moderni'; }
 
   function showPdvFields() {
     const u = $('s_uPdv').checked;
@@ -376,6 +380,7 @@
     for (const [id, key] of Object.entries(settingFields)) $(id).value = settings[key] ?? '';
     $('s_uPdv').checked = !!settings.uPdv;
     showPdvFields();
+    showBoja();
     $('s_next').value = counterCache[yy(today())] || '';
     $('s_user').textContent = user ? user.email : '';
     pendingLogo = settings.logo;
@@ -544,6 +549,7 @@
     $('btnSettingsClose').addEventListener('click', () => $('dlgSettings').close());
     $('btnLogout').addEventListener('click', logout);
     $('s_uPdv').addEventListener('change', showPdvFields);
+    $('s_predlozak').addEventListener('change', showBoja);
     $('s_logo').addEventListener('change', (e) => { if (e.target.files[0]) readLogo(e.target.files[0]); });
     $('btnLogoReset').addEventListener('click', () => { pendingLogo = null; $('s_logo').value = ''; showLogoPreview(); });
 

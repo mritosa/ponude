@@ -90,6 +90,8 @@
   .login h1 { font-size: 19px; text-align: center; margin: 0 0 18px; }
   .login .err { color: var(--red-dark); font-size: 14px; min-height: 20px; margin: 4px 0 8px; }
   .loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .hint { display: block; font-size: 12px; margin-top: 4px; }
+  input[type=color] { height: 46px; padding: 4px; }
   .intro { background: #fbe9e6; border-radius: 10px; padding: 12px; font-size: 14px; margin: 0 0 14px; }
   .user-box { background: var(--bg); border-radius: 10px; padding: 12px; margin: 18px 0 6px; font-size: 14px; }
   .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: #222; color: #fff; padding: 10px 16px;
@@ -188,7 +190,8 @@
 <dialog id="dlgSettings">
   <h3>Postavke</h3>
   <p class="intro" id="s_intro" hidden>👋 Dobrodošli! Prije prve ponude upiši podatke svoje firme. Oni se ispisuju u zaglavlju svake ponude, a možeš ih kasnije promijeniti ovdje (⚙️).</p>
-  <label>Naziv firme *<input id="s_firma" placeholder="npr. Obrt Horvat, vl. Ivan Horvat"></label>
+  <label>Naziv firme *<textarea id="s_firma" rows="2" placeholder="npr. Obrt Horvat, vl. Ivan Horvat"></textarea>
+    <span class="hint">Može u više redaka. Za podebljano stavi tekst između dvije zvjezdice: **TEKST**</span></label>
   <label>Adresa firme<input id="s_adresa" placeholder="npr. Ulica 1, HR-52000 Pazin"></label>
   <label>OIB firme<input id="s_oib" inputmode="numeric" maxlength="11"></label>
   <label>Ostali podaci u zaglavlju (IBAN, banka…)<textarea id="s_dodatno" rows="4" placeholder="IBAN: HR...&#10;Naziv banke    SWIFT: ..."></textarea></label>
@@ -197,6 +200,11 @@
     <input type="file" id="s_logo" accept="image/png,image/jpeg">
   </label>
   <button class="btn secondary" id="btnLogoReset" style="margin-bottom:14px">Ukloni logo</button>
+  <div class="row">
+    <label>Izgled ponude
+      <select id="s_predlozak"><option value="klasicni">Klasični</option><option value="moderni">Moderni</option></select></label>
+    <label id="s_bojaWrap">Boja linija<input type="color" id="s_boja"></label>
+  </div>
   <label>Zadana odgovorna osoba<input id="s_odgovorna"></label>
   <div class="row">
     <label>Oznaka u broju<input id="s_srednji" inputmode="numeric"></label>
@@ -221,7 +229,7 @@
 <script src="vendor/supabase.js"></script>
 <script src="vendor/pdfmake.min.js"></script>
 <script src="vendor/vfs_fonts.js"></script>
-<script src="ponuda-pdf.js?v=6"></script>
-<script src="app.js?v=5"></script>
+<script src="ponuda-pdf.js?v=7"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
