@@ -365,7 +365,7 @@
     s_stopaPdv: 'stopaPdv', s_predlozak: 'predlozak', s_boja: 'boja',
   };
 
-  function showBoja() { $('s_bojaWrap').hidden = $('s_predlozak').value !== 'moderni'; }
+  function showBoja() { $('s_bojaWrap').hidden = $('s_predlozak').value === 'klasicni'; }
 
   function showPdvFields() {
     const u = $('s_uPdv').checked;

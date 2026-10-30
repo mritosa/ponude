@@ -453,7 +453,186 @@
     };
   }
 
-  const PREDLOSCI = { klasicni: buildKlasicni, moderni: buildModerni };
+  // Šareni izgled: logo i podaci firme u zaglavlju, raznobojna traka, tamna tablica i istaknuti iznos.
+  const DUGA = ['#8dc63f', '#f26522', '#4a9ea1', '#ffe600', '#00a651', '#d7262c', '#8ccbe8', '#0072bc'];
+  function traka(width, height) {
+    const w = width / DUGA.length;
+    return { canvas: DUGA.map((color, i) => ({ type: 'rect', x: i * w, y: 0, w: w + 0.5, h: height, color })) };
+  }
+
+  function buildSareni(d, s, logo) {
+    const boja = s.boja || '#d7262c';
+    const TAMNA = '#3d3d3d';
+    const W = 505;
+    const items = activeItems(d.stavke);
+    const c = calc(d.stavke, s);
+    const k = d.kupac || {};
+    const firma = firmaLines(s);
+
+    const firmaStack = [
+      ...firma.map((l) => ({ text: rich(l) })),
+      s.adresa ? { text: s.adresa } : null,
+      s.oib ? { text: [{ text: 'OIB: ', bold: true }, s.oib] } : null,
+      ...String(s.dodatno || '').split('\n').map((t) => t.trim()).filter(Boolean).map((t) => ({ text: t, color: '#444444' })),
+    ].filter(Boolean);
+
+    const posta = String(k.posta || '').trim();
+    const kupacStack = [
+      { text: 'PONUDA ZA', bold: true, fontSize: 7, color: boja, margin: [0, 0, 0, 3] },
+      ...String(k.naziv || '').split('\n').map((t) => t.trim()).filter(Boolean).map((t) => ({ text: t, bold: true })),
+      k.adresa ? { text: k.adresa } : null,
+      posta || k.mjesto ? { text: [posta, k.mjesto].filter(Boolean).join(' ') } : null,
+      k.oib ? { text: 'OIB: ' + k.oib } : null,
+    ].filter(Boolean);
+
+    const detalji = [
+      ['Broj ponude', d.broj],
+      ['Datum', fmtDate(d.datum)],
+      d.valjanost ? ['Vrijedi do', fmtDate(d.valjanost)] : null,
+      d.rokIsporuke ? ['Rok isporuke', d.rokIsporuke] : null,
+      d.odgovornaOsoba ? ['Odgovorna osoba', d.odgovornaOsoba] : null,
+    ].filter(Boolean).map(([l, v]) => [{ text: l, color: '#666666' }, right(v, { bold: true })]);
+
+    const th = (text, alignment) => ({ text, bold: true, color: '#ffffff', alignment: alignment || 'left' });
+    const header = [th('R.br.'), th('Opis'), th('Količina', 'right'), th('Jed.'), th('Cijena', 'right'),
+      ...(s.uPdv ? [th('PDV', 'right')] : []), th('Iznos', 'right')];
+    const rows = items.map((it, i) => {
+      const opis = String(it.opis || '').split('\n').map((t) => t.trim()).filter(Boolean);
+      return [
+        String(i + 1) + '.',
+        { stack: [{ text: it.naziv || '' }, ...opis.map((t) => ({ text: t, fontSize: 7.5, color: '#555555' }))] },
+        right(fmt(num(it.kolicina))),
+        it.jedinica || '',
+        right(fmt(num(it.cijena))),
+        ...(s.uPdv ? [right(stopaText(itemPdv(it, s)) + '%')] : []),
+        right(fmt(lineValue(it))),
+      ];
+    });
+
+    const ukupno = [
+      { text: 'UKUPNO ZA PLATITI', bold: true, color: '#ffffff', fillColor: boja },
+      right(fmt(c.zaPlatiti) + ' €', { bold: true, fontSize: 11.5, color: '#ffffff', fillColor: boja }),
+    ];
+    const totals = s.uPdv
+      ? [
+        ['Osnovica', right(fmt(c.osnovica) + ' €')],
+        ...c.stope.map((r) => [`PDV ${stopaText(r.stopa)}% (na ${fmt(r.osnova)} €)`, right(fmt(r.pdv) + ' €')]),
+        ukupno,
+      ]
+      : [ukupno];
+
+    const content = [
+      {
+        columnGap: 20,
+        columns: [
+          logo
+            ? { image: logo, width: 175 }
+            : { width: '*', text: firma.map(plain).join(' '), bold: true, fontSize: 18, color: boja },
+          { width: '*', stack: firmaStack, alignment: 'right', fontSize: 8.5, lineHeight: 1.2, margin: [0, 8, 0, 0] },
+        ],
+      },
+      Object.assign(traka(W, 4), { margin: [0, 12, 0, 0] }),
+      {
+        margin: [0, 18, 0, 0],
+        text: 'PONUDA', bold: true, fontSize: 22, color: TAMNA, characterSpacing: 1,
+      },
+      {
+        margin: [0, 10, 0, 0],
+        columnGap: 25,
+        columns: [
+          {
+            width: '*',
+            table: { widths: ['*'], body: [[{ stack: kupacStack, fontSize: 9.5, lineHeight: 1.15 }]] },
+            layout: {
+              hLineWidth: () => 0, vLineWidth: (i) => (i === 0 ? 3 : 0), vLineColor: () => boja,
+              fillColor: () => '#f4f4f4',
+              paddingLeft: () => 10, paddingRight: () => 10, paddingTop: () => 8, paddingBottom: () => 8,
+            },
+          },
+          {
+            width: 200,
+            fontSize: 8.5,
+            table: { widths: ['*', 'auto'], body: detalji },
+            layout: {
+              hLineWidth: (i, node) => (i === 0 || i === node.table.body.length ? 0 : 0.5),
+              hLineColor: () => '#dddddd', vLineWidth: () => 0,
+              paddingLeft: () => 0, paddingRight: () => 0, paddingTop: () => 4, paddingBottom: () => 4,
+            },
+          },
+        ],
+      },
+      {
+        margin: [0, 22, 0, 0],
+        fontSize: 8.5,
+        table: {
+          headerRows: 1,
+          widths: s.uPdv ? [24, '*', 48, 30, 56, 34, 64] : [24, '*', 50, 32, 62, 70],
+          body: [header, ...rows],
+        },
+        layout: {
+          hLineWidth: (i, node) => (i === node.table.body.length ? 1.2 : 0),
+          hLineColor: () => TAMNA,
+          vLineWidth: () => 0,
+          fillColor: (row) => (row === 0 ? TAMNA : row % 2 === 0 ? '#f6f6f6' : null),
+          paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 5, paddingBottom: () => 5,
+        },
+      },
+      {
+        margin: [0, 12, 0, 0],
+        unbreakable: true,
+        columnGap: 20,
+        columns: [
+          { width: '*', text: [{ text: 'Slovima: ', color: '#555555' }, slovima(c.zaPlatiti)], fontSize: 8, margin: [4, 4, 0, 0] },
+          {
+            width: 240,
+            fontSize: 9,
+            table: { widths: ['*', 'auto'], body: totals },
+            layout: {
+              hLineWidth: () => 0, vLineWidth: () => 0,
+              paddingLeft: () => 6, paddingRight: () => 6, paddingTop: () => 4, paddingBottom: () => 4,
+            },
+          },
+        ],
+      },
+    ];
+
+    if (String(d.napomena || '').trim()) {
+      content.push({ text: d.napomena.trim(), fontSize: 9, margin: [0, 28, 0, 0], lineHeight: 1.2 });
+    }
+    content.push(
+      { text: s.napomenaDno || '', bold: true, fontSize: 10, margin: [0, d.napomena ? 16 : 28, 0, 1] },
+      { text: s.uPdv ? '' : s.pdvNapomena || '', fontSize: 7.5, color: '#444444' },
+      { text: `Pri plaćanju navedite poziv na broj ${d.broj}.`, fontSize: 8, margin: [0, 14, 0, 0] },
+    );
+
+    const podnozje = [firma.map(plain).join(' '), s.adresa, s.oib ? 'OIB: ' + s.oib : '']
+      .filter(Boolean).join('  •  ');
+
+    return {
+      pageSize: 'A4',
+      pageMargins: [45, 40, 45, 70],
+      defaultStyle: { font: 'Roboto', fontSize: 9 },
+      info: { title: 'Ponuda ' + d.broj, author: plain(firma.join(' ')) },
+      footer: (cur, count) => ({
+        margin: [45, 18, 45, 0],
+        stack: [
+          traka(W, 2),
+          {
+            margin: [0, 6, 0, 0],
+            fontSize: 7.5,
+            color: '#555555',
+            columns: [
+              { width: '*', text: podnozje },
+              { width: 'auto', text: count > 1 ? `Stranica ${cur}/${count}` : '' },
+            ],
+          },
+        ],
+      }),
+      content,
+    };
+  }
+
+  const PREDLOSCI = { klasicni: buildKlasicni, moderni: buildModerni, sareni: buildSareni };
   function buildDoc(d, s, logo) {
     return (PREDLOSCI[s.predlozak] || buildKlasicni)(d, s, logo);
   }

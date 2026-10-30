@@ -1,5 +1,5 @@
 // Offline rad: sve datoteke se spremaju pri prvom otvaranju.
-const CACHE = 'ponude-v3';
+const CACHE = 'ponude-v4';
 const FILES = ['./', 'index.html', 'app.js', 'ponuda-pdf.js', 'config.js', 'vendor/supabase.js', 'vendor/pdfmake.min.js', 'vendor/vfs_fonts.js',
   'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
